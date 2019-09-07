@@ -19,34 +19,92 @@ FriendlyEats.prototype.addRestaurant = function(data) {
   /*
     TODO: Implement adding a document
   */
+  const collection = firebase.firestore().collection('restaurants')
+  debugger
+  return collection.add(data)
 };
 
 FriendlyEats.prototype.getAllRestaurants = function(renderer) {
   /*
     TODO: Retrieve list of restaurants
   */
+ const query = firebase.firestore().collection('restaurants')
+ .orderBy('avgRating', 'desc')
+ .limit(50)
+
+ this.getDocumentsInQuery(query, renderer)
 };
 
 FriendlyEats.prototype.getDocumentsInQuery = function(query, renderer) {
   /*
     TODO: Render all documents in the provided query
   */
+ //It's also possible to fetch documents from Cloud Firestore once using the Query.get() method.
+ query.onSnapshot((snapshot) => {
+   if(!snapshot.size)
+    return renderer.empty()
+  snapshot.docChanges().forEach((change) => {
+    if(change.type === 'removed') {
+      renderer.remove(change.doc)
+    } else {
+      renderer.display(change.doc)
+    }
+  })
+ })
 };
 
 FriendlyEats.prototype.getRestaurant = function(id) {
   /*
     TODO: Retrieve a single restaurant
   */
+ return firebase.firestore().collection('restaurants').doc(id).get();
 };
 
 FriendlyEats.prototype.getFilteredRestaurants = function(filters, renderer) {
   /*
     TODO: Retrieve filtered list of restaurants
   */
-};
+ let query = firebase.firestore().collection('restaurants')
 
+ if(filters.category !== 'Any') {
+    query = query.where('category', '==', filters.category)
+  };
+
+  if (filters.city !== 'Any') {
+    query = query.where('city', '==', filters.city);
+  }
+
+  if (filters.price !== 'Any') {
+    query = query.where('price', '==', filters.price.length);
+  }
+
+  if(filters.sort === 'Rating') {
+    query = query.orderBy('avgRating', 'desc')
+  } else if (filters.sort === 'Reviews') {
+    query = query.orderBy('numRatings', 'desc');
+  }
+
+  this.getDocumentsInQuery(query, renderer);
+}
+  
 FriendlyEats.prototype.addRating = function(restaurantID, rating) {
-  /*
-    TODO: Retrieve add a rating to a restaurant
-  */
+  var collection = firebase.firestore().collection('restaurants');
+  var document = collection.doc(restaurantID);
+  var newRatingDocument = document.collection('ratings').doc();
+
+  return firebase.firestore().runTransaction(function(transaction) {
+    return transaction.get(document).then(function(doc) {
+      var data = doc.data();
+
+      var newAverage =
+          (data.numRatings * data.avgRating + rating.rating) /
+          (data.numRatings + 1);
+
+      transaction.update(document, {
+        numRatings: data.numRatings + 1,
+        avgRating: newAverage
+      });
+      return transaction.set(newRatingDocument, rating);
+    });
+  });
 };
