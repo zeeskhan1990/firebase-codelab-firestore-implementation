@@ -1,5 +1,5 @@
 {
-  "name": "firebase-codelab-firestore-implementation/",
+  "name": "firebase-codelab-firestore-implementation",
   "version": "0.0.0",
   "description": "Starting point for the Cloud Firestore codelab",
   "main": ".",
